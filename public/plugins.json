@@ -1,0 +1,18 @@
+[
+  {
+    "name": "TrueaccordPlugin",
+    "version": "0.0.0",
+    "class": "TrueaccordPlugin",
+    "requires": [
+      {
+        "@twilio/flex-ui": "1.1.0"
+      }
+    ],
+    "src": "http://localhost:8080/plugin-trueaccord.js"
+  },
+  {
+    "name": "Admin Plugin",
+    "version": "0.7.2",
+    "src": "https://flexperience.twil.io/assets/flex.admin.plugin-0.7.2.js"
+  }
+]
