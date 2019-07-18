@@ -14,6 +14,7 @@ const StatItem = styled.div`
     width: 25%;
     height: 100px;
     text-align: center;
+    padding: 15px 30px;
     & svg{
         height: 80px;
         width: 80px;
@@ -23,6 +24,15 @@ const StatItem = styled.div`
 const LargeNumber = styled.h1`
     font-size: 48px!important;
     color: #434343;
+`
+
+const WorkerActivity = styled.div`
+    display: flex;
+    justify-content: space-between;
+    width: 60%;
+    margin: 15px 20%;
+    font-weight: 600;
+    font-size: 18px;
 `
 
 class DashboardView extends React.Component{
@@ -78,12 +88,12 @@ class DashboardView extends React.Component{
                     tasksInQueue: tasksInQueue,
                     averageWaiting: averageWaiting,
                     longestWaiting: longestWaiting,
-                    callsAnswered: callsAnswered,
-                    callsAbandonedMissed: callsAbandonedMissed,
+                    callsAnswered: Math.round(callsAnswered),
+                    callsAbandonedMissed: Math.round(callsAbandonedMissed),
                     workerStatistics: workerStatistics,
                 })
 
-            }, 5000);
+            }, 2000);
         } catch(e) {
             console.log(e);
         }
@@ -96,7 +106,7 @@ class DashboardView extends React.Component{
     createWorkerTable(){
         let table = [];
         for (let i = 0; i < this.state.workerStatistics.length; i++) {
-            table.push(<div>{this.state.workerStatistics[i].friendly_name} : <span>{this.state.workerStatistics[i].workers}</span></div>)
+            table.push(<WorkerActivity>{this.state.workerStatistics[i].friendly_name} : <span>{this.state.workerStatistics[i].workers}</span></WorkerActivity>)
         }
         return table;
     }
@@ -109,11 +119,11 @@ class DashboardView extends React.Component{
             </StatItem>
             <StatItem>
                 <h1>Average Waiting:</h1>
-                <LargeNumber>{this.state.averageWaiting}</LargeNumber>
+                <LargeNumber>{this.prettyPrintTime(this.state.averageWaiting)}</LargeNumber>
             </StatItem>
             <StatItem>
                 <h1>Longest waiting:</h1>
-                <LargeNumber>{this.state.longestWaiting}</LargeNumber>
+                <LargeNumber>{this.prettyPrintTime(this.state.longestWaiting)}</LargeNumber>
             </StatItem>
             <StatItem>
                 <h1>Calls Answered:</h1>
