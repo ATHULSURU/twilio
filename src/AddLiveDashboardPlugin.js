@@ -73,6 +73,11 @@ export default class AddLiveDashboardPlugin extends FlexPlugin {
             resolve();
         }).then(() => original(payload));
         });
+
+        flex.AgentDesktopView.Panel2.Content.add(
+            <AfterCallPopup key={`popup_${'0'}`} sid={'0'}/>
+        );
+
     }
         
 
