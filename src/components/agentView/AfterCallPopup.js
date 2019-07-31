@@ -1,6 +1,6 @@
 import React from "react";
 import styled from "styled-components";
-import { Actions, Manager } from "@twilio/flex-ui";
+import {Actions, Manager} from "@twilio/flex-ui";
 
 const Background = styled.div`
   display: block; /* Hidden by default */
@@ -17,13 +17,17 @@ const Background = styled.div`
 `;
 
 const PopUp = styled.div`
-  position: relative;
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  z-index: 100; /* Sit on top */
   background-color: #fefefe;
   margin: auto;
   padding: 0;
   border: 1px solid #888;
-  width: 60%;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  width: 45%;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
   & label {
     display: block;
     margin: 10px 0 5px;
@@ -40,6 +44,9 @@ const PopupHeader = styled.div`
   padding: 5px 60px;
   background-color: #5cb85c;
   color: white;
+  & h2{
+    font-size: 16px;
+  }
 `;
 
 const PopupBody = styled.div`
@@ -88,7 +95,7 @@ const Tag = styled.div`
   background-color: #0061b5;
   margin-right: 5px;
   margin-bottom: 5px;
-  ${({ disabled }) =>
+  ${({disabled}) =>
     disabled &&
     `
         display: none;
@@ -96,207 +103,223 @@ const Tag = styled.div`
 `;
 
 class AfterCallPopup extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      possibleTags: [],
-      selectedTags: ["No pay - not right now"],
-      category: "",
-      description: "",
-      searchQuery: "",
-      count: 0,
-      time: "",
-      error: { descriptionError: "", tagError: "" }
-    };
-    this.addTag = this.addTag.bind(this);
-    this.removeTag = this.removeTag.bind(this);
-    this.completeTask = this.completeTask.bind(this);
-    this.handleDescriptionChange = this.handleDescriptionChange.bind(this);
-    this.handleCategoryChange = this.handleCategoryChange.bind(this);
-    this.handleSearchChange = this.handleSearchChange.bind(this);
-  }
+    constructor(props) {
+        super(props);
+        this.state = {
+            promiseTags: [],
+            commitmentTags: [],
+            noPayTags: [],
+            otherTags: [],
+            selectedTags: [],
+            category: "select disposition",
+            description: "",
+            searchQuery: "",
+            count: 0,
+            time: "",
+            error: {descriptionError: "", tagError: ""}
+        };
+        this.addTag = this.addTag.bind(this);
+        this.removeTag = this.removeTag.bind(this);
+        this.completeTask = this.completeTask.bind(this);
+        this.handleDescriptionChange = this.handleDescriptionChange.bind(this);
+        this.handleCategoryChange = this.handleCategoryChange.bind(this);
+        this.handleSearchChange = this.handleSearchChange.bind(this);
+    }
 
-  componentDidMount() {
-    fetch(`https://peach-uguisu-5468.twil.io/GetTags`)
-      .then(response => response.json())
-      .then(result => {
+    componentDidMount() {
+        fetch(`https://peach-uguisu-5468.twil.io/GetTags`)
+            .then(response => response.json())
+            .then(result => {
+                this.setState({
+                    promiseTags: result.promise,
+                    commitmentTags: result.commitment,
+                    noPayTags: result.noPay,
+                    otherTags: result.other
+                });
+            });
+        this.timerID = setInterval(() => this.tick(), 1000);
+    }
+
+    tick() {
+        var hour = Math.floor(this.state.count / 3600);
+        var minute = Math.floor((this.state.count - hour * 3600) / 60);
+        var seconds = this.state.count - (hour * 3600 + minute * 60);
         this.setState({
-          possibleTags: result.tags
+            count: this.state.count + 1,
+            time: minute + ":" + ((seconds > 9) ? seconds : ('0' + seconds.toString(10)))
         });
-      });
-    this.timerID = setInterval(() => this.tick(), 1000);
-  }
-
-  tick() {
-    var hour = Math.floor(this.state.count / 3600);
-    var minute = Math.floor((this.state.count - hour * 3600) / 60);
-    var seconds = this.state.count - (hour * 3600 + minute * 60);
-    this.setState({
-      count: this.state.count + 1,
-      time: hour + "(h)" + ":" + minute + "(m)" + ":" + seconds + "(s)"
-    });
-  }
-
-  validate = () => {
-    let descriptionError = "";
-    let tagError = "";
-
-    if (!this.state.description) {
-      descriptionError = "*can't make field empty";
     }
-    if (this.state.searchQuery.length < 0) {
-      tagError = "*Atleast one tag have to select";
+
+    validate = () => {
+        let descriptionError = "";
+        let tagError = "";
+        let categoryError = "";
+
+        if (!this.state.description) {
+            descriptionError = "*you must fill in the description";
+        }
+        if (!this.state.selectedTags.length) {
+            tagError = "*atleast one tag must be selected";
+        }
+        if (this.state.category === 'select disposition') {
+            categoryError = "*you must set a disposition";
+        }
+        const error = this.state.error;
+        error["decsError"] = descriptionError;
+        error["tagError"] = tagError;
+        error["categoryError"] = categoryError;
+        if (descriptionError || tagError) {
+            this.setState({error});
+
+            return false;
+        }
+        return true;
+    };
+
+    handleDescriptionChange(event) {
+        this.setState({description: event.target.value});
     }
-    const error = this.state.error;
-    error["decsError"] = descriptionError;
-    error["tagError"] = tagError;
-    if (descriptionError || tagError) {
-      this.setState({ error });
 
-      return false;
+    handleCategoryChange(event) {
+        this.setState({category: event.target.value});
     }
-    return true;
-  };
 
-  handleDescriptionChange(event) {
-    this.setState({ description: event.target.value });
-  }
-
-  handleCategoryChange(event) {
-    this.setState({ category: event.target.value });
-  }
-
-  handleSearchChange(event) {
-    this.setState({ searchQuery: event.target.value });
-  }
-
-  addTag(tag) {
-    this.setState(state => {
-      const selectedTags = state.selectedTags.concat(tag);
-      return {
-        selectedTags
-      };
-    });
-  }
-
-  removeTag(tag) {
-    let i = this.state.selectedTags.indexOf(tag);
-    this.setState(state => {
-      const selectedTags = state.selectedTags.filter((item, j) => i !== j);
-
-      return {
-        selectedTags
-      };
-    });
-  }
-
-  renderPossibleTags() {
-    let tags = [];
-    for (let i = 0; i < this.state.possibleTags.length; i++) {
-      let tag = this.state.possibleTags[i];
-      tags.push(
-        <Tag
-          key={`possible_${tag}`}
-          disabled={
-            this.state.selectedTags.includes(tag) ||
-            !tag.toUpperCase().includes(this.state.searchQuery.toUpperCase())
-          }
-          onClick={() => {
-            this.addTag(tag);
-          }}
-        >
-          {tag}
-        </Tag>
-      );
+    handleSearchChange(event) {
+        this.setState({searchQuery: event.target.value});
     }
-    return tags;
-  }
 
-  renderSelectedTags() {
-    let tags = [];
-    for (let i = 0; i < this.state.selectedTags.length; i++) {
-      let tag = this.state.selectedTags[i];
-      tags.push(
-        <Tag
-          key={`selected_${tag}`}
-          onClick={() => {
-            this.removeTag(tag);
-          }}
-        >
-          {tag} &times;
-        </Tag>
-      );
+    addTag(tag) {
+        this.setState(state => {
+            const selectedTags = state.selectedTags.concat(tag);
+            return {
+                selectedTags
+            };
+        });
     }
-    return tags;
-  }
 
-  completeTask() {
-    const isValid = this.validate();
-    if (isValid) {
-      console.log(this.state);
-      Actions.invokeAction("CompleteTask", { sid: this.props.sid });
-      clearInterval(this.state.count, this.state.time);
-      this.setState({ count: 0 });
+    removeTag(tag) {
+        let i = this.state.selectedTags.indexOf(tag);
+        this.setState(state => {
+            const selectedTags = state.selectedTags.filter((item, j) => i !== j);
+
+            return {
+                selectedTags
+            };
+        });
     }
-  }
 
-  render() {
-    return (
-      <Background>
-        <PopUp>
-          <PopupHeader>
-            <h2>After Call Work</h2>
-          </PopupHeader>
-          <h4>Time:{this.state.time}</h4>
-          <PopupBody>
-            <p>Please fill in the information about this call</p>
-            <label>Set a category for call:</label>
-            <select
-              value={this.state.category}
-              onChange={this.handleCategoryChange}
-            >
-              <option value="Promise - payment in full">
-                Promise - payment in full
-              </option>
-              <option value="Promise - Payment Plan">
-                Promise - Payment Plan
-              </option>
-              <option value="Promise - Settlement in Full">
-                Promise - Settlement in Full
-              </option>
-              <option value="Promise - Settlement in payments">
-                Promise - Settlement in payments
-              </option>
-            </select>
-            <label>Write a description call:</label>
-            <textarea
-              value={this.state.description}
-              onChange={this.handleDescriptionChange}
-            />
-            <div style={{ color: "red" }}> {this.state.error.decsError}</div>
+    renderPossibleTags(tagArray) {
+        let tags = [];
+        for (let i = 0; i < tagArray.length; i++) {
+            let tag = tagArray[i];
+            tags.push(
+                <Tag
+                    key={`possible_${tag}`}
+                    disabled={
+                        this.state.selectedTags.includes(tag) ||
+                        !tag.toUpperCase().includes(this.state.searchQuery.toUpperCase())
+                    }
+                    onClick={() => {
+                        this.addTag(tag);
+                    }}
+                >
+                    {tag}
+                </Tag>
+            );
+        }
+        return tags;
+    }
 
-            <label>Tags for this call:</label>
-            <TagHolder>{this.renderSelectedTags()}</TagHolder>
-            <div style={{ color: "red" }}>{this.state.error.tagError}</div>
-            <label>Choose from the following:</label>
-            <input
-              value={this.state.searchQuery}
-              placeholder="Search for tags"
-              type="text"
-              onChange={this.handleSearchChange}
-            />
-            <PossibleTags>{this.renderPossibleTags()}</PossibleTags>
-            <div style={{ color: "red" }}>{this.state.error.tagError}</div>
-          </PopupBody>
-          <PopupFooter>
-            <CompleteTask onClick={this.completeTask}>
-              Complete Task
-            </CompleteTask>
-          </PopupFooter>
-        </PopUp>
-      </Background>
-    );
-  }
+    renderSelectedTags() {
+        let tags = [];
+        for (let i = 0; i < this.state.selectedTags.length; i++) {
+            let tag = this.state.selectedTags[i];
+            tags.push(
+                <Tag
+                    key={`selected_${tag}`}
+                    onClick={() => {
+                        this.removeTag(tag);
+                    }}
+                >
+                    {tag} &times;
+                </Tag>
+            );
+        }
+        return tags;
+    }
+
+    completeTask() {
+        const isValid = this.validate();
+        if (isValid) {
+            console.log(this.state);
+            Actions.invokeAction("CompleteTask", {sid: this.props.sid});
+            clearInterval(this.state.count, this.state.time);
+            this.setState({count: 0});
+        }
+    }
+
+    render() {
+        return (
+            <PopUp>
+                <PopupHeader>
+                    <h2>After Call Work {this.state.time}</h2>
+                </PopupHeader>
+
+                <PopupBody>
+                    <label>Write a description call:</label>
+                    <textarea
+                        value={this.state.description}
+                        onChange={this.handleDescriptionChange}
+                    />
+                    <div style={{color: "red"}}> {this.state.error.decsError}</div>
+                    <label>Set a disposition:</label>
+                    <select
+                        value={this.state.category}
+                        onChange={this.handleCategoryChange}
+                    >
+                        <option value="select disposition">Select disposition</option>
+                        <option value="promise">
+                            Promise
+                        </option>
+                        <option value="commitment">
+                            Commitment
+                        </option>
+                        <option value="noPay">
+                            No Pay
+                        </option>
+                        <option value="other">
+                            Other
+                        </option>
+                    </select>
+                    <div style={{color: "red"}}>{this.state.error.categoryError}</div>
+
+                    <label>Tags for this call:</label>
+                    <TagHolder>{this.renderSelectedTags()}</TagHolder>
+                    <div style={{color: "red"}}>{this.state.error.tagError}</div>
+                    <label>Choose from the following:</label>
+                    <input
+                        value={this.state.searchQuery}
+                        placeholder="Search for tags"
+                        type="text"
+                        onChange={this.handleSearchChange}
+                    />
+                    {(this.state.category === 'promise') &&
+                    <PossibleTags>{this.renderPossibleTags(this.state.promiseTags)}</PossibleTags>}
+                    {(this.state.category === 'commitment') &&
+                    <PossibleTags>{this.renderPossibleTags(this.state.commitmentTags)}</PossibleTags>}
+                    {(this.state.category === 'noPay') &&
+                    <PossibleTags>{this.renderPossibleTags(this.state.noPayTags)}</PossibleTags>}
+                    {(this.state.category === 'other') &&
+                    <PossibleTags>{this.renderPossibleTags(this.state.otherTags)}</PossibleTags>}
+                </PopupBody>
+                <PopupFooter>
+                    <CompleteTask onClick={this.completeTask}>
+                        Complete Task
+                    </CompleteTask>
+                </PopupFooter>
+            </PopUp>
+        );
+    }
 }
 
 export default AfterCallPopup;
