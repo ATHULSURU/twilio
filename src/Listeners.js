@@ -1,10 +1,50 @@
-import { Actions, Manager } from '@twilio/flex-ui';
+import { Actions, Manager } from "@twilio/flex-ui";
 
 export const setListeners = () => {
-    Manager.getInstance().workerClient.on("reservationCreated", reservation => {
-            Actions.invokeAction("AcceptTask", { sid: reservation.sid });
-            Actions.invokeAction("SelectTask", { sid: reservation.sid });
+  let conferenceSid;
+  Manager.getInstance().workerClient.on("reservationCreated", reservation => {
+    Actions.registerAction("Updateconference", () => {
+      return fetch(
+        `https://almond-lionfish-9759.twil.io/conference-call?conferenceSid=${conferenceSid}`
+      )
+        .then(response => {
+          console.log(response);
+        })
+        .catch(error => {
+          console.log(error);
+          throw error;
+        });
     });
-};
+    Actions.registerAction("FechConference", () => {
+      return fetch(
+        `https://almond-lionfish-9759.twil.io/fetch-conference?conferenceSid=${conferenceSid}`
+      ).then(response => {
+        fetch(
+          `https://3jru87f8hd.execute-api.us-west-2.amazonaws.com/v1/customer-interaction`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: "Basic am9yZGFuOmhlcmU=",
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*"
+            },
+            body: JSON.stringify(response)
+          }
+        );
+      });
+    });
 
+    Actions.invokeAction("AcceptTask", { sid: reservation.sid });
+    Actions.invokeAction("SelectTask", { sid: reservation.sid });
+    Actions.addListener("afterAcceptTask", payload => {
+      setTimeout(() => {
+        conferenceSid = payload.task.attributes.conference.sid;
+        return Actions.invokeAction("Updateconference");
+      }, 3000);
+    });
+    Actions.addListener("afterCompleteTask", payload => {
+      return Actions.invokeAction("FechConference");
+    });
+  });
+};
 export default setListeners;
