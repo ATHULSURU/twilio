@@ -24,7 +24,7 @@ export const setListeners = () => {
           {
             method: "POST",
             headers: {
-              Authorization: "Basic am9yZGFuOmhlcmU=",
+              Authorization: "Basic am9yZGFuIDogaGVyZQ==",
               "Content-Type": "application/json",
               "Access-Control-Allow-Origin": "*"
             },
@@ -43,7 +43,22 @@ export const setListeners = () => {
       }, 3000);
     });
     Actions.addListener("afterCompleteTask", payload => {
-      return Actions.invokeAction("FechConference");
+        const base64 = require('base-64');
+        let username = 'jordan';
+        let password = 'here';
+        let data = payload.task.attributes;
+        console.log(data);
+        fetch(
+            `https://3jru87f8hd.execute-api.us-west-2.amazonaws.com/v1/customer-interaction`,
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": 'Basic ' + base64.encode(username + ":" + password),
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            }
+        );
     });
   });
 };

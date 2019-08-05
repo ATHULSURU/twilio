@@ -57,7 +57,7 @@ export default class AddLiveDashboardPlugin extends FlexPlugin {
             return new Promise((resolve, reject) => {
                 if (payload && payload.task) {
                     flex.AgentDesktopView.Panel2.Content.add(
-                        <AfterCallPopup key={`popup_${payload.task.sid}`} sid={payload.task.sid}/>
+                        <AfterCallPopup key={`popup_${payload.task.sid}`} task={payload.task}/>
                     );
                 }
                 resolve();
@@ -73,10 +73,12 @@ export default class AddLiveDashboardPlugin extends FlexPlugin {
             resolve();
         }).then(() => original(payload));
         });
+        /*
 
         flex.AgentDesktopView.Panel2.Content.add(
             <AfterCallPopup key={`popup_${'0'}`} sid={'0'}/>
         );
+        */
 
     }
         

@@ -38,8 +38,6 @@ const PopUp = styled.div`
     width: 100%;
     height: 100px;
   }
-  overflow-x: scroll;
-  height: 100vh;
 `;
 
 const PopupHeader = styled.div`
@@ -53,6 +51,8 @@ const PopupHeader = styled.div`
 
 const PopupBody = styled.div`
   padding: 15px 60px;
+  max-height: 80vh;
+  overflow-y: scroll;
 `;
 
 const PopupFooter = styled.div`
@@ -166,10 +166,10 @@ class AfterCallPopup extends React.Component {
       descriptionError = "*you must fill in the description";
     }
     if (!this.state.selectedTags.length) {
-      tagError = "*atleast one tag must be selected";
+      tagError = "*at least one tag must be selected";
     }
     if (!this.state.selectedAccountTags.length) {
-      accountError = "*atleast one account must be selected";
+      accountError = "*at least one account must be selected";
     }
     if (this.state.category === "select disposition") {
       categoryError = "*you must set a disposition";
@@ -324,11 +324,31 @@ class AfterCallPopup extends React.Component {
 
   completeTask() {
     const isValid = this.validate();
+    const task = this.props.task;
     if (isValid) {
-      console.log(this.state);
-      Actions.invokeAction("CompleteTask", { sid: this.props.sid });
-      clearInterval(this.state.count, this.state.time);
-      this.setState({ count: 0 });
+      task.setAttributes({
+          ...task.attributes,
+          afterCallWork: {
+              selectedTags: this.state.selectedTags,
+              accounts: this.state.selectedAccountTags,
+              callDescription: this.state.description,
+              dispositon: this.state.category,
+              timeInAfterCall: (this.state.count * 1000)
+          }
+      }).then(()=>{
+          fetch(`https://almond-lionfish-9759.twil.io/get-participant?callSid=${task.attributes.conference.participants.customer}`)
+              .then(response => response.json())
+              .then(result => {
+                  task.setAttributes({
+                      ...task.attributes,
+                      callInfo: result.call
+                  }).then(()=>{
+                      Actions.invokeAction("CompleteTask", { sid: this.props.task.sid });
+                      clearInterval(this.state.count, this.state.time);
+                      this.setState({ count: 0 });
+                  });
+              });
+      });
     }
   }
 
@@ -343,10 +363,10 @@ class AfterCallPopup extends React.Component {
           <label>Set Account(s):</label>
           <TagHolder>{this.renderSelectedAccountTags()}</TagHolder>
           <div style={{ color: "red" }}> {this.state.error.accountError}</div>
-          <label>Serch for account:</label>
+          <label>Search for account:</label>
           <input
             value={this.state.searchAccountQuery}
-            placeholder="Search for account"
+            placeholder="Search for accounts"
             type="text"
             onChange={this.handleSearchChangeAccount}
           />
